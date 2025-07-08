@@ -1,6 +1,8 @@
 ---
 // src/layouts/BaseLayout.astro
+import FaviconTags.astro from '../components/VideoCard.astro';
 import { desk, nama, url, google, yandex } from '../utils/site';
+
 export interface Props {
     title: string;
     description: string;
@@ -31,7 +33,6 @@ const websiteSchema = {
     "description": desk,
     "publisher": {
         "@type": "Organization",
-        "@type": "ImageObject", // Perbaikan: Tambahkan ImageObject untuk logo
         "name": nama,
         "logo": {
             "@type": "ImageObject",
@@ -91,6 +92,7 @@ const combinedJsonLdSchemas = [
         <meta name="twitter:image" content={ogImageFullUrl} />
         <meta name="google-site-verification" content={google} />
         <meta name="yandex-verification" content={yandex} />
+        <FaviconTags />
         {preconnectDomains.map(domain => (
             <link rel="preconnect" href={domain} crossorigin/>
         ))}
@@ -143,78 +145,6 @@ const combinedJsonLdSchemas = [
         <footer>
             <p>&copy; {new Date().getFullYear()} {nama}. All rights reserved.</p>
         </footer>
-        <script type="text/javascript" is:inline>
-            // Script untuk video preview (tidak diubah)
-            document.querySelectorAll('.video-card').forEach(card=>{const videoPreview=card.querySelector('.video-preview');if(videoPreview){card.addEventListener('mouseenter',()=>{if(!card.classList.contains('video-preview-error')){const src=videoPreview.getAttribute('data-src');if(src&&videoPreview.src!==src){videoPreview.src=src;videoPreview.load()}videoPreview.play().catch(e=>{console.warn('Video playback failed, adding error class:',e);card.classList.add('video-preview-error')})}});card.addEventListener('mouseleave',()=>{if(videoPreview&&!videoPreview.paused){videoPreview.pause();videoPreview.currentTime=0}})}});
-        </script>
-        <script type="text/javascript" is:inline>
-            document.addEventListener('DOMContentLoaded', () => {
-                // Dark Mode Toggle
-                const toggleButton = document.getElementById('darkModeToggle');
-                const body = document.body;
-                const LIGHT_ICON = '☀️';
-                const DARK_ICON = '🌙';
-                const STORAGE_KEY = 'darkModeEnabled';
-
-                function applyTheme(isDarkMode) {
-                    if (isDarkMode) {
-                        body.classList.add('dark-mode');
-                        toggleButton.textContent = DARK_ICON;
-                    } else {
-                        body.classList.remove('dark-mode');
-                        toggleButton.textContent = LIGHT_ICON;
-                    }
-                }
-
-                const savedMode = localStorage.getItem(STORAGE_KEY);
-                if (savedMode === 'true') {
-                    applyTheme(true);
-                } else if (savedMode === null && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    applyTheme(true);
-                } else {
-                    applyTheme(false);
-                }
-
-                if (toggleButton) {
-                    toggleButton.addEventListener('click', () => {
-                        const isCurrentlyDarkMode = body.classList.contains('dark-mode');
-                        const newMode = !isCurrentlyDarkMode;
-                        applyTheme(newMode);
-                        localStorage.setItem(STORAGE_KEY, newMode);
-                    });
-                }
-
-        const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
-        const mobileSearchForm = document.getElementById('mobileSearchForm');
-        const closeSearchButton = document.getElementById('closeSearch');
-        const openSearchButton = document.getElementById('openSearch');
-
-        function closeOverlay() {
-            mobileSearchOverlay.classList.remove('active');
-        }
-
-        function openOverlay() {
-            mobileSearchOverlay.classList.add('active');
-        }
-
-        closeSearchButton.addEventListener('click', closeOverlay);
-
-        mobileSearchOverlay.addEventListener('click', function(event) {
-            if (!mobileSearchForm.contains(event.target) && event.target !== mobileSearchForm) {
-                closeOverlay();
-            }
-        });
-
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape' && mobileSearchOverlay.classList.contains('active')) {
-                closeOverlay();
-            }
-        });
-
-        if (openSearchButton) {
-            openSearchButton.addEventListener('click', openOverlay);
-        }
-            });
-        </script>
+        <script type="text/javascript" is:inline>document.querySelectorAll('.video-card').forEach(card=>{const videoPreview=card.querySelector('.video-preview');if(videoPreview){card.addEventListener('mouseenter',()=>{if(!card.classList.contains('video-preview-error')){const src=videoPreview.getAttribute('data-src');if(src&&videoPreview.src!==src){videoPreview.src=src;videoPreview.load()}videoPreview.play().catch(e=>{console.warn('Video playback failed, adding error class:',e);card.classList.add('video-preview-error')})}});card.addEventListener('mouseleave',()=>{if(videoPreview&&!videoPreview.paused){videoPreview.pause();videoPreview.currentTime=0}})}});document.addEventListener('DOMContentLoaded',()=>{const toggleButton=document.getElementById('darkModeToggle');const body=document.body;const LIGHT_ICON='☀️';const DARK_ICON='🌙';const STORAGE_KEY='darkModeEnabled';function applyTheme(isDarkMode){if(isDarkMode){body.classList.add('dark-mode');toggleButton.textContent=DARK_ICON}else{body.classList.remove('dark-mode');toggleButton.textContent=LIGHT_ICON}}const savedMode=localStorage.getItem(STORAGE_KEY);if(savedMode==='true'){applyTheme(true)}else if(savedMode===null&&window.matchMedia('(prefers-color-scheme: dark)').matches){applyTheme(true)}else{applyTheme(false)}if(toggleButton){toggleButton.addEventListener('click',()=>{const isCurrentlyDarkMode=body.classList.contains('dark-mode');const newMode=!isCurrentlyDarkMode;applyTheme(newMode);localStorage.setItem(STORAGE_KEY,newMode)})}const mobileSearchOverlay=document.getElementById('mobileSearchOverlay');const mobileSearchForm=document.getElementById('mobileSearchForm');const closeSearchButton=document.getElementById('closeSearch');const openSearchButton=document.getElementById('openSearch');function closeOverlay(){mobileSearchOverlay.classList.remove('active')}function openOverlay(){mobileSearchOverlay.classList.add('active')}closeSearchButton.addEventListener('click',closeOverlay);mobileSearchOverlay.addEventListener('click',function(event){if(!mobileSearchForm.contains(event.target)&&event.target!==mobileSearchForm){closeOverlay()}});document.addEventListener('keydown',function(event){if(event.key==='Escape'&&mobileSearchOverlay.classList.contains('active')){closeOverlay()}});if(openSearchButton){openSearchButton.addEventListener('click',openOverlay)}});</script>
     </body>
 </html>
