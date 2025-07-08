@@ -1,0 +1,220 @@
+---
+// src/layouts/BaseLayout.astro
+import { desk, nama, url, google, yandex } from '../utils/site';
+export interface Props {
+    title: string;
+    description: string;
+    preconnectDomains?: string[];
+    siteName?: string;
+    siteUrl?: string;
+    keywords?: string;
+    schemaJsonLd?: Record<string, any>[]; 
+}
+
+const {
+    title,
+    description,
+    preconnectDomains = [],
+    siteName = nama,
+    siteUrl = url,
+    keywords,
+    schemaJsonLd = [], 
+} = Astro.props;
+
+const ogImageFullUrl = new URL(`${url}/logo.png`, url).href;
+
+const websiteSchema = {
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": nama,
+    "url": url,
+    "description": desk,
+    "publisher": {
+        "@type": "Organization",
+        "@type": "ImageObject", // Perbaikan: Tambahkan ImageObject untuk logo
+        "name": nama,
+        "logo": {
+            "@type": "ImageObject",
+            "url": `${url}/logo.png`
+        }
+    },
+    "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": `${url}/video/{query}/1`
+        },
+        "query-input": "required name=query"
+    }
+};
+
+const organizationSchema = {
+    "@context": "http://schema.org",
+    "@type": "Organization",
+    "name": nama,
+    "url": url,
+    "logo": `${url}/logo.png`,
+    "description": desk,
+    "sameAs": []
+};
+
+const baseLayoutSchemas = [
+    websiteSchema,
+    organizationSchema
+];
+
+const combinedJsonLdSchemas = [
+    ...baseLayoutSchemas,
+    ...schemaJsonLd
+];
+---
+<!doctype html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content={title} />
+        <link rel="canonical" href={Astro.url.href} />
+        <meta property="og:description" content={description} />
+        <meta property="og:url" content={Astro.url.href} />
+        <meta property="og:type" content="website" />
+        <meta name="keywords" content={keywords || title} />
+        <meta property="og:site_name" content={siteName} />
+        <meta property="og:locale" content="id_ID" />
+        <meta property="og:image" content={ogImageFullUrl} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={ogImageFullUrl} />
+        <meta name="google-site-verification" content={google} />
+        <meta name="yandex-verification" content={yandex} />
+        {preconnectDomains.map(domain => (
+            <link rel="preconnect" href={domain} crossorigin/>
+        ))}
+        
+        {combinedJsonLdSchemas.map((schema) => (
+            <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+        ))}
+        <link rel="stylesheet" href="/global.css" />
+        </head>
+    <body>
+        <header>
+            <nav class="main-nav">
+                <a href={url} class="logo" aria-label={`${nama} - Beranda`}>{nama}</a>
+                
+    <button id="openSearch">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </button>
+
+    <div id="mobileSearchOverlay" class="mobile-search-overlay">
+        <form id="mobileSearchForm" action="/video/" method="get" class="search-form-mobile" role="search">
+            <input type="search" name="query" placeholder="Cari video..." required autofocus />
+            <button type="submit" aria-label="Mulai pencarian">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+            <button type="button" id="closeSearch" class="close-search-button" aria-label="Tutup pencarian">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </form>
+    </div>
+
+
+                <form id="desktopSearchForm" action="/video/" method="get" class="search-form-desktop" role="search">
+                    <input type="search" name="query" placeholder="Cari video..." required />
+                    <button type="submit" aria-label="Mulai pencarian">Cari</button>
+                </form>
+
+                <ul class="nav-links">
+                    <li><a href={`${url}`}>Home</a></li>
+                    <li><a href={`${url}/category/`}>Category</a></li>
+                    <li><a href={`${url}/tags/`}>Tags</a></li>
+                    <li>
+                        <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Toggle dark mode">☀️</button>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+
+        <slot />
+
+        <footer>
+            <p>&copy; {new Date().getFullYear()} {nama}. All rights reserved.</p>
+        </footer>
+        <script type="text/javascript" is:inline>
+            // Script untuk video preview (tidak diubah)
+            document.querySelectorAll('.video-card').forEach(card=>{const videoPreview=card.querySelector('.video-preview');if(videoPreview){card.addEventListener('mouseenter',()=>{if(!card.classList.contains('video-preview-error')){const src=videoPreview.getAttribute('data-src');if(src&&videoPreview.src!==src){videoPreview.src=src;videoPreview.load()}videoPreview.play().catch(e=>{console.warn('Video playback failed, adding error class:',e);card.classList.add('video-preview-error')})}});card.addEventListener('mouseleave',()=>{if(videoPreview&&!videoPreview.paused){videoPreview.pause();videoPreview.currentTime=0}})}});
+        </script>
+        <script type="text/javascript" is:inline>
+            document.addEventListener('DOMContentLoaded', () => {
+                // Dark Mode Toggle
+                const toggleButton = document.getElementById('darkModeToggle');
+                const body = document.body;
+                const LIGHT_ICON = '☀️';
+                const DARK_ICON = '🌙';
+                const STORAGE_KEY = 'darkModeEnabled';
+
+                function applyTheme(isDarkMode) {
+                    if (isDarkMode) {
+                        body.classList.add('dark-mode');
+                        toggleButton.textContent = DARK_ICON;
+                    } else {
+                        body.classList.remove('dark-mode');
+                        toggleButton.textContent = LIGHT_ICON;
+                    }
+                }
+
+                const savedMode = localStorage.getItem(STORAGE_KEY);
+                if (savedMode === 'true') {
+                    applyTheme(true);
+                } else if (savedMode === null && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    applyTheme(true);
+                } else {
+                    applyTheme(false);
+                }
+
+                if (toggleButton) {
+                    toggleButton.addEventListener('click', () => {
+                        const isCurrentlyDarkMode = body.classList.contains('dark-mode');
+                        const newMode = !isCurrentlyDarkMode;
+                        applyTheme(newMode);
+                        localStorage.setItem(STORAGE_KEY, newMode);
+                    });
+                }
+
+        const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
+        const mobileSearchForm = document.getElementById('mobileSearchForm');
+        const closeSearchButton = document.getElementById('closeSearch');
+        const openSearchButton = document.getElementById('openSearch');
+
+        function closeOverlay() {
+            mobileSearchOverlay.classList.remove('active');
+        }
+
+        function openOverlay() {
+            mobileSearchOverlay.classList.add('active');
+        }
+
+        closeSearchButton.addEventListener('click', closeOverlay);
+
+        mobileSearchOverlay.addEventListener('click', function(event) {
+            if (!mobileSearchForm.contains(event.target) && event.target !== mobileSearchForm) {
+                closeOverlay();
+            }
+        });
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && mobileSearchOverlay.classList.contains('active')) {
+                closeOverlay();
+            }
+        });
+
+        if (openSearchButton) {
+            openSearchButton.addEventListener('click', openOverlay);
+        }
+            });
+        </script>
+    </body>
+</html>

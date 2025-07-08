@@ -1,0 +1,13 @@
+---
+// src/pages/video/[slug]/index.astro
+
+import { Astro } from 'astro';
+import { slugify } from '../../utils/slugify.ts'; // Pastikan path ini benar
+
+const { slug } = Astro.params; // Ambil parameter slug dari URL
+
+if (slug) {
+  return Astro.redirect(`/video/${slug}/1`);
+}
+return Astro.redirect('/video/');
+---

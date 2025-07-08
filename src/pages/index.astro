@@ -1,0 +1,211 @@
+---
+// src/pages/index.astro
+import Layout from '../layouts/BaseLayout.astro';
+import VideoCard from '../components/VideoCard.astro';
+import { slugify } from '../utils/slugify';
+import { getAllVideos, type VideoData } from '../utils/data';
+import { terbit, nama, url, desk } from '../utils/site';
+export const prerender = true;
+
+const allVideos: VideoData[] = await getAllVideos();
+const videosByCategory: { [key: string]: VideoData[] } = {};
+const numberOfVideosPerCategory = 12;
+
+const usedTitles = new Set<string>();
+
+allVideos.forEach(video => {
+  if (!videosByCategory[video.category]) {
+    videosByCategory[video.category] = [];
+  }
+  videosByCategory[video.category].push(video);
+});
+
+function shuffleArray<T>(array: T[]): T[] {
+  let currentIndex = array.length, randomIndex;
+
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
+const finalVideosByCategory: { [key: string]: VideoData[] } = {};
+const allCategoryNames = Object.keys(videosByCategory);
+
+allCategoryNames.forEach(categoryName => {
+  const videosInThisCategory = videosByCategory[categoryName];
+  
+  const shuffledVideosInThisCategory = shuffleArray([...videosInThisCategory]);
+  
+  const selectedVideosForCategory: VideoData[] = [];
+  
+  for (const video of shuffledVideosInThisCategory) {
+    const normalizedTitle = video.title.toLowerCase().trim();
+    if (!usedTitles.has(normalizedTitle)) {
+      selectedVideosForCategory.push(video);
+      usedTitles.add(normalizedTitle);
+    }
+    if (selectedVideosForCategory.length >= numberOfVideosPerCategory) {
+      break;
+    }
+  }
+  
+  finalVideosByCategory[categoryName] = selectedVideosForCategory;
+});
+
+const sortedCategories = Object.keys(finalVideosByCategory).sort();
+
+const numberOfRandomVideos = 12;
+
+const randomVideos: VideoData[] = [];
+const videosForRandomSelection = allVideos.filter(video => {
+  const normalizedTitle = video.title.toLowerCase().trim();
+  return !usedTitles.has(normalizedTitle);
+});
+
+const shuffledRandomSelection = shuffleArray([...videosForRandomSelection]);
+
+for (const video of shuffledRandomSelection) {
+    const normalizedTitle = video.title.toLowerCase().trim();
+    if (!usedTitles.has(normalizedTitle)) {
+        randomVideos.push(video);
+        usedTitles.add(normalizedTitle);
+    }
+    if (randomVideos.length >= numberOfRandomVideos) {
+        break;
+    }
+}
+
+const preconnectDomains = new Set<string>();
+
+Object.values(finalVideosByCategory).flat().forEach(video => {
+  try {
+    if (video.thumbnail) {
+      preconnectDomains.add(new URL(video.thumbnail).origin);
+    }
+  } catch (e) {
+    console.error(`[ERROR] URL thumbnail tidak valid untuk video ID ${video.id} (videosByRandomCategory):`, e);
+  }
+});
+
+randomVideos.forEach(video => {
+  try {
+    if (video.thumbnail) {
+      preconnectDomains.add(new URL(video.thumbnail).origin);
+    }
+  } catch (e) {
+    console.error(`[ERROR] URL thumbnail tidak valid untuk video ID ${video.id} (randomVideos):`, e);
+  }
+});
+
+const finalPreconnectDomains = Array.from(preconnectDomains);
+
+const breadcrumbs = [
+  { name: 'Home', url: `${url}` },
+];
+
+const currentUrl = url;
+const siteName = nama;
+const siteDescription = desk;
+const allCategories = [...new Set(allVideos.map(video => video.category))].filter(Boolean);
+const homeKeywords = `${nama}, ${allCategories.join(', ')}, nonton bokep gratis, bokep streaming online`;
+
+const schemaWebPage = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "url": currentUrl,
+  "name": `${nama} - Video Bokep Indo Viral Terbaru`,
+  "description": `Nonton video streaming ${nama} terbaru secara gratis. Temukan Video bokep lengkap seperti ${sortedCategories.slice(0, 3).join(', ')}${sortedCategories.length > 3 ? ', dan banyak lagi' : ''}.`,
+  "publisher": {
+    "@type": "Organization",
+    "name": siteName,
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${currentUrl}/logo.png`
+    }
+  },
+  "datePublished": terbit,
+  "dateModified": new Date().toISOString(),
+  "inLanguage": "id-ID"
+};
+
+const schemaBreadcrumb = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": breadcrumbs.map((item, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "name": item.name,
+    ...(item.url && { "item": item.url })
+  }))
+};
+---
+
+<Layout
+  title={`${nama} - Video Bokep Indo Viral Terbaru`}
+  description={`Nonton video streaming ${nama} terbaru secara gratis. Temukan Video bokep lengkap seperti ${sortedCategories.slice(0, 3).join(', ')}${sortedCategories.length > 3 ? ', dan banyak lagi' : ''}.`}
+  siteName={siteName}
+  preconnectDomains={finalPreconnectDomains}
+  siteUrl={currentUrl}
+  keywords={homeKeywords}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(schemaWebPage)} />
+  <script type="application/ld+json" set:html={JSON.stringify(schemaBreadcrumb)} />
+
+  <main class="home-page" itemscope itemtype="http://schema.org/WebPage">
+    <meta itemprop="url" content={currentUrl} />
+    <meta itemprop="name" content={`${nama} - Video Bokep Indo Viral Terbaru`} />
+    <meta itemprop="description" content={`Nonton video streaming ${nama} terbaru secara gratis. Temukan Video bokep lengkap seperti ${sortedCategories.slice(0, 3).join(', ')}${sortedCategories.length > 3 ? ', dan banyak lagi' : ''}.`} />
+    <div itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content={siteName} />
+      <div itemprop="logo" itemscope itemtype="http://schema.org/ImageObject">
+        <meta itemprop="url" content={`${currentUrl}/logo.png`} />
+      </div>
+    </div>
+    <meta itemprop="datePublished" content={terbit}/>
+    <meta itemprop="dateModified" content={new Date().toISOString()} />
+
+    <section class="hero-section">
+      <h1 itemprop="headline">Nonton Video Streaming {nama} Terbaru dan Terlengkap</h1>
+      <p itemprop="description">{nama} menyediakan koleksi {siteDescription} secara gratis, dengan update rutin dan kualitas terbaik.</p>
+    </section>
+
+    <section class="random-videos-section">
+    {randomVideos.length > 0 && (
+        <h2 class="section-title">Video Pilihan Kami</h2><div class="video-grid">
+          {randomVideos.map((video) => (
+            <VideoCard video={video} headingLevel="h3" />
+          ))}
+        </div>
+      </section>
+    )}
+
+<section class="all-categories-section">
+      {sortedCategories.length === 0 ? (
+        <p class="no-videos-overall">Belum ada video yang tersedia di portal ini.</p>
+      ) : (
+        sortedCategories.map(categoryName => (
+          <div class="category-group"><h2 class="category-title">Video {categoryName} Terbaru</h2><div class="video-grid">
+              {finalVideosByCategory[categoryName].length === 0 ? (
+                <p class="no-videos-in-category">Tidak ada video dalam kategori ini.</p>
+              ) : (
+                finalVideosByCategory[categoryName].map((video) => (
+                  <VideoCard video={video} headingLevel="h3" />
+                ))
+              )}
+            </div>
+            {videosByCategory[categoryName] && videosByCategory[categoryName].length > numberOfVideosPerCategory && (
+              <div class="view-all-button-container">
+                <a href={`${currentUrl}/category/${slugify(categoryName)}/1`} class="view-all-button">Lihat Semua Video {categoryName}</a>
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </section>
+  </main>
+</Layout>

@@ -1,0 +1,98 @@
+---
+import Layout from '../../layouts/BaseLayout.astro';
+import VideoCard from '../../components/VideoCard.astro';
+import { getAllVideos, type VideoData } from '../../utils/data.ts';
+import { slugify } from '../../utils/slugify.ts';
+import { desk, nama, url } from '../../utils/site';
+
+
+const currentPage = 1; // Untuk halaman index ini, kita asumsikan halaman pertama
+
+// Cek apakah ada query parameter
+const rawQueryFromSearch = Astro.url.searchParams.get('query');
+const originalQuery = rawQueryFromSearch ? decodeURIComponent(rawQueryFromSearch) : '';
+
+// --- Logika Redirect jika ada query parameter ---
+if (originalQuery) {
+  const slugifiedQuery = slugify(originalQuery);
+  // Lakukan redirect 302 (Moved Temporarily) ke URL bersih
+  // Ini penting untuk SEO dan menghindari duplikasi konten
+  return Astro.redirect(`${url}/video/${slugifiedQuery}/1`);
+}
+
+// --- Logika di bawah ini hanya akan dieksekusi jika TIDAK ADA query parameter (misal: /video/) ---
+let randomPostsBelowSearch: VideoData[] = [];
+let preconnectDomains: string[] = [];
+
+try {
+  const allVideos: VideoData[] = await getAllVideos();
+  const numberOfRandomPosts = 12;
+  randomPostsBelowSearch = allVideos
+      .sort(() => 0.5 - Math.random()) // Ambil acak
+      .slice(0, numberOfRandomPosts);
+
+  const domainsSet = new Set<string>();
+  randomPostsBelowSearch.forEach(video => {
+    try {
+      if (video.thumbnail) domainsSet.add(new URL(video.thumbnail).origin);
+      if (video.embedUrl) domainsSet.add(new URL(video.embedUrl).origin);
+    } catch (e) {
+      console.error(`URL tidak valid di JSON untuk video ID ${video.id} (random posts - index):`, e);
+    }
+  });
+  preconnectDomains = Array.from(domainsSet);
+
+} catch (error) {
+  console.error('Gagal mengambil video acak di index.astro:', error);
+  randomPostsBelowSearch = [];
+}
+
+const displayQuery = "Pencarian"; // Default display query jika tidak ada input
+const breadcrumbs = [
+  { name: 'Home', url: `${url}` },
+  { name: displayQuery, url: null },
+];
+
+---
+
+<Layout
+  title={`Pencarian Video di ${nama}`}
+  description={`Halaman untuk mencari video ${desk} di ${nama}.`}
+  preconnectDomains={preconnectDomains}
+>
+  <main class="search-page" itemscope itemtype="http://schema.org/SearchResultsPage">
+    <nav class="breadcrumb" aria-label="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+      <ol>
+        {breadcrumbs.map((item, index) => (
+          <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem">
+            {index > 0 && <span class="separator">/</span>}
+            {item.url ? (
+              <a itemprop="item" href={item.url}>
+                <span itemprop="name">{item.name}</span>
+              </a>
+            ) : (
+              <span itemprop="name">{item.name}</span>
+            )}
+            <meta itemprop="position" content={(index + 1).toString()} />
+          </li>
+        ))}
+      </ol>
+    </nav>
+    <h1 class="search-results-title" itemprop="headline">Pencarian Video</h1>
+
+    <p class="no-results-message">
+      Silakan masukkan kata kunci di kolom pencarian di atas untuk memulai pencarian video.
+    </p>
+    
+    {randomPostsBelowSearch.length > 0 && (
+      <section class="random-videos-section">
+        <h2 class="section-title">Video Mungkin Anda Suka</h2>
+        <div class="video-grid">
+          {randomPostsBelowSearch.map((video) => (
+            <VideoCard video={video} videoDetailPath={`/${slugify(video.title)}-${video.id}/`} />
+          ))}
+        </div>
+      </section>
+    )}
+  </main>
+</Layout>

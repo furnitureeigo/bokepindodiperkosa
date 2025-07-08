@@ -1,0 +1,154 @@
+---
+// src/pages/tags/index.astro
+import Layout from '../../layouts/BaseLayout.astro';
+import { getAllVideos, type VideoData } from '../../utils/data.ts';
+import { slugify } from '../../utils/slugify.ts';
+import { desk, nama, url } from '../../utils/site';
+export const prerender = true;
+
+const allVideos: VideoData[] = await getAllVideos();
+const uniqueTags = new Set<string>();
+allVideos.forEach(video => {
+  if (typeof video.tags === 'string') {
+    video.tags.split(',').forEach(tag => {
+      const trimmedTag = tag.trim();
+      if (trimmedTag.length > 0) {
+        uniqueTags.add(trimmedTag);
+      }
+    });
+  }
+});
+
+const filteredTags = Array.from(uniqueTags).filter(tag => {
+  const lowerCaseTag = tag.toLowerCase();
+
+  // --- REVISI DI SINI ---
+  // Aturan 1: Filter tag yang mengandung "bokep" diikuti dengan:
+  // - Spasi dan satu karakter alfanumerik/simbol (misal: "bokep x", "bokep 1", "bokep -")
+  // - Spasi dan dua karakter alfanumerik (misal: "bokep xx")
+  // - Hanya "bokep" (tanpa karakter tambahan)
+  // - Spasi dan angka (misal: "bokep 123")
+  const isBokepAndSpecificRandom = /^bokep\s+[\w\d\-]{1,2}$/i.test(lowerCaseTag); // 'bokep' diikuti 1 atau 2 karakter alfanumerik/strip
+  const isJustBokep = /^bokep$/i.test(lowerCaseTag); // Hanya 'bokep'
+  const isBokepFollowedByNumbers = /^bokep\s+\d+$/i.test(lowerCaseTag); // 'bokep' diikuti angka berapapun
+  
+  // Gabungkan semua kondisi "bokep"
+  const isBokepIrrelevant = isBokepAndSpecificRandom || isJustBokep || isBokepFollowedByNumbers;
+  // --- AKHIR REVISI ---
+
+
+  // Aturan 2: Filter tag yang hanya satu kata dan sangat panjang (misal: randomstringpanjangsekali)
+  // Ini membantu membersihkan typo atau data yang korup yang tidak sengaja menjadi tag
+  const words = lowerCaseTag.split(/\s+/);
+  const isSingleLongRandomWord = words.length === 1 && words[0].length > 20; // Ambang batas 20 karakter, sesuaikan!
+
+  // Aturan 3: Filter tag yang hanya terdiri dari angka (misal: 12345, 987654321)
+  const isOnlyNumbers = /^\d+$/.test(lowerCaseTag);
+  
+  // Aturan 4: Filter kata-kata tunggal yang umum tidak relevan atau terlalu pendek
+  const singleWordShortStopList = new Set([
+    'dan', 'atau', 'di', 'ini', 'itu', 'yang', // Contoh kata-kata tunggal pendek yang mungkin tidak relevan sebagai tag
+    'video', 'film', 'movie', 'full', 'gratis', 'online', 'terbaru', 'download', // Kata-kata deskriptif umum yang mungkin tidak spesifik sebagai tag
+    'hd', 'mp4', 'xxx', 'free', 'new', 'indo', 'indonesia', 'part', 'episode' // Contoh lain
+  ]);
+  const isSingleWordAndInShortStopList = words.length === 1 && singleWordShortStopList.has(lowerCaseTag);
+
+
+  // Menggabungkan semua kondisi pengecualian
+  return !(
+    isBokepIrrelevant || // Menggunakan variabel gabungan yang baru
+    isSingleLongRandomWord ||
+    isOnlyNumbers ||
+    isSingleWordAndInShortStopList
+  );
+});
+
+const sortedTags = filteredTags.sort((a, b) => a.localeCompare(b));
+
+const breadcrumbs = [
+  { name: 'Home', url: `${url}` },
+  { name: 'Semua Tags' },
+];
+
+const schemaBreadcrumb = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": breadcrumbs.map((item, index) => ({
+    "@type": "ListItem",
+    "position": index + 1,
+    "name": item.name,
+    ...(item.url && { "item": item.url })
+  }))
+};
+
+const schemaWebPage = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "url": `${url}/tags`,
+  "name": `Semua Tags - ${nama}`,
+  "description": `Jelajahi daftar lengkap tags dan kategori video yang tersedia di ${nama}. Temukan konten favorit Anda berdasarkan topik.`,
+  "publisher": {
+    "@type": "Organization",
+    "name": nama,
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${url}/logo.png`
+    }
+  },
+  "inLanguage": "id-ID",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": `${url}/tags`
+  }
+};
+
+const pageKeywords = `tags video, daftar tags, ${nama} tags, topik video, genre video, ${sortedTags.slice(0, 5).join(', ')}${sortedTags.length > 5 ? ', dll.' : ''}`;
+
+---
+
+<Layout
+  title={`Semua Tags Video - ${nama} | Jelajahi Kategori Lengkap`}
+  description={`Jelajahi daftar lengkap tags dan kategori video yang tersedia di ${nama}. Temukan konten favorit Anda berdasarkan topik dan genre. Navigasi cepat ke video yang Anda cari.`}
+  siteName={nama}
+  siteUrl={url}
+  keywords={pageKeywords}
+>
+    <script type="application/ld+json" set:html={JSON.stringify(schemaBreadcrumb)} />
+  <script type="application/ld+json" set:html={JSON.stringify(schemaWebPage)} />
+
+  <main class="tags-index-page">
+    <nav class="breadcrumb" aria-label="breadcrumb">
+      <ol vocab="https://schema.org/" typeof="BreadcrumbList">
+        {breadcrumbs.map((item, index) => (
+          <li property="itemListElement" typeof="ListItem">
+            {index > 0 && <span class="separator" aria-hidden="true">/</span>}
+            {item.url ? (
+              <a property="item" typeof="WebPage" href={item.url}>
+                <span property="name">{item.name}</span>
+              </a>
+            ) : (
+              <span property="name">{item.name}</span>
+            )}
+            <meta property="position" content={(index + 1).toString()} />
+          </li>
+        ))}
+      </ol>
+    </nav>
+
+    <h1 class="page-title">Daftar Lengkap Tags Video di {nama}</h1>
+
+    {sortedTags.length === 0 ? (
+      <p class="no-tags-message">
+        Tidak ada tags yang ditemukan. Konten sedang ditambahkan, silakan kembali nanti!
+      </p>
+    ) : (
+      <div class="tags-grid">
+        {sortedTags.map(tag => (
+          <a href={`${url}/video/${slugify(tag)}/1`} class="tag-card" rel="tag" title={`Lihat semua video dengan tag ${tag}`}>
+            {tag}
+          </a>
+        ))}
+      </div>
+    )}
+  </main>
+</Layout>
